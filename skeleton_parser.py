@@ -77,11 +77,18 @@ def parseJson(json_file):
     with open(json_file, 'r') as f:
         items = loads(f.read())['Items'] # creates a Python dictionary of Items for the supplied json file
         for item in items:
-            """
-            TODO: traverse the items dictionary to extract information from the
-            given `json_file' and generate the necessary .dat files to generate
-            the SQL tables based on your relation design
-            """
+            item_tb = item["ItemID"] + item["Seller"]["UserID"] + columnSeparator + item["Name"] + columnSeparator + \
+                item["Currently"] + columnSeparator
+
+            if "Buy_Price" in item: item_tb += item["Buy_Price"]
+
+            item_tb += columnSeparator + item["First_Bid"] + \
+                columnSeparator + item["Number_of_Bids"] + columnSeparator + item["Started"] + item["Ends"] + \
+                columnSeparator + item["Description"]
+
+            category_tb = item["ItemID"] + columnSeparator
+            for cat in item["Category"]:
+                category_tb += cat
             pass
 
 """
