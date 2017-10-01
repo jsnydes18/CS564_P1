@@ -140,7 +140,7 @@ def parseJson(json_file):
                     bid_file.write(bid_tb + '\n')
 
                     user_tb = item["Bids"][x]["Bid"]["Bidder"]["UserID"] + columnSeparator + \
-                        "\"" +item["Bids"][x]["Bid"]["Bidder"]["Rating"] + "\"" + columnSeparator
+                        item["Bids"][x]["Bid"]["Bidder"]["Rating"] + columnSeparator
                     if "Location" in item["Bids"][x]["Bid"]["Bidder"]:
                         user_tb += ("\"" + item["Bids"][x]["Bid"]["Bidder"]["Location"] + "\"" + columnSeparator)
                     else:
@@ -148,14 +148,14 @@ def parseJson(json_file):
                     if "Country" in item["Bids"][x]["Bid"]["Bidder"]:
                         user_tb += ("\"" + item["Bids"][x]["Bid"]["Bidder"]["Country"] + "\"")
                     else:
-                        user_tb += ("NULL" + columnSeparator)
+                        user_tb += "NULL"
                     user_file.write(user_tb + '\n')
 
             #Create Entries for User Table
             user_tb = item["Seller"]["UserID"] + columnSeparator + \
+                item["Seller"]["Rating"] + columnSeparator + \
                 "\"" + item["Location"] + "\"" + columnSeparator + \
-                "\"" + item["Country"] + "\"" + columnSeparator + \
-                "\"" + item["Seller"]["Rating"] + "\""
+                "\"" + item["Country"] + "\""
             user_file.write(user_tb + '\n')
 
             pass
