@@ -68,28 +68,102 @@ def transformDollar(money):
         return money
     return sub(r'[^\d.]', '', money)
 
+
+def escapeQuotes(str, start):
+    start = str.find("\"", start)
+    if start == -1:
+        return str
+    newstr = str[:start] + "\"" + str[start:]
+    return escapeQuotes(newstr, start+2)
+
+
 """
 Parses a single json file. Currently, there's a loop that iterates over each
 item in the data set. Your job is to extend this functionality to create all
 of the necessary SQL tables for your database.
+
+Item: ItemID | SellerID | Name | Currently | Buy Price | First Bid | Number of Bids | Started | Ends | Description
+Category: ItemID | Category
+Bid: ItemID | BuyerID | Time | Amount
+User: UserID | Rating | Location | Country
 """
 def parseJson(json_file):
     with open(json_file, 'r') as f:
-        items = loads(f.read())['Items'] # creates a Python dictionary of Items for the supplied json file
+        items = loads(f.read())['Items']
+
+        #Open DAT files, create if none exist
+        item_file = open('item_tb.dat', 'w+')
+        item_file.truncate()
+        cat_file = open('category_tb.dat', 'w+')
+        cat_file.truncate()
+        bid_file = open('bid_tb.dat', 'w+')
+        bid_file.truncate()
+        user_file = open('user_tb.dat', 'w+')
+        user_file.truncate()
+
+        #Loop through items
         for item in items:
-            item_tb = item["ItemID"] + item["Seller"]["UserID"] + columnSeparator + item["Name"] + columnSeparator + \
-                item["Currently"] + columnSeparator
+            #Create Entries for Item Table
+            item_tb = item["ItemID"] + columnSeparator + \
+                "\"" + item["Seller"]["UserID"] + "\"" + columnSeparator + \
+                "\"" + escapeQuotes(item["Name"], 0) + "\"" + columnSeparator + \
+                "\"" + transformDollar(item["Currently"]) + "\"" + columnSeparator
 
-            if "Buy_Price" in item: item_tb += item["Buy_Price"]
+            if "Buy_Price" in item:
+                item_tb += ("\"" + transformDollar(item["Buy_Price"]) + "\"")
+            else:
+                item_tb += "NULL"
 
-            item_tb += columnSeparator + item["First_Bid"] + \
-                columnSeparator + item["Number_of_Bids"] + columnSeparator + item["Started"] + item["Ends"] + \
-                columnSeparator + item["Description"]
+            item_cont = columnSeparator + "\"" + transformDollar(item["First_Bid"]) + "\"" + \
+                columnSeparator + item["Number_of_Bids"] + \
+                columnSeparator + "\"" + transformDttm(item["Started"]) + "\"" + \
+                columnSeparator + "\"" + transformDttm(item["Ends"]) + "\"" + columnSeparator
 
-            category_tb = item["ItemID"] + columnSeparator
+            item_tb += item_cont
+            item_tb += ("\"" + escapeQuotes(str(item["Description"]), 0) + "\"")
+            item_file.write(item_tb + '\n')
+
+            #Create Entries for Category Table
             for cat in item["Category"]:
-                category_tb += cat
+                category_tb = item["ItemID"] + columnSeparator + "\"" + cat + "\""
+                cat_file.write(category_tb + '\n')
+
+
+            #Create Entries for Bid Table
+            num_bids = int(item["Number_of_Bids"])
+            if num_bids > 0:
+                for x in range(0, num_bids-1):
+                    bid_tb = item["ItemID"] + columnSeparator + \
+                        "\"" + item["Bids"][x]["Bid"]["Bidder"]["UserID"] + "\"" + columnSeparator + \
+                        "\"" + transformDttm(item["Bids"][x]["Bid"]["Time"]) + "\"" + columnSeparator + \
+                        "\"" + transformDollar(item["Bids"][x]["Bid"]["Amount"]) + "\""
+                    bid_file.write(bid_tb + '\n')
+
+                    user_tb = item["Bids"][x]["Bid"]["Bidder"]["UserID"] + columnSeparator + \
+                        "\"" +item["Bids"][x]["Bid"]["Bidder"]["Rating"] + "\"" + columnSeparator
+                    if "Location" in item["Bids"][x]["Bid"]["Bidder"]:
+                        user_tb += ("\"" + item["Bids"][x]["Bid"]["Bidder"]["Location"] + "\"" + columnSeparator)
+                    else:
+                        user_tb += ("NULL" + columnSeparator)
+                    if "Country" in item["Bids"][x]["Bid"]["Bidder"]:
+                        user_tb += ("\"" + item["Bids"][x]["Bid"]["Bidder"]["Country"] + "\"")
+                    else:
+                        user_tb += ("NULL" + columnSeparator)
+                    user_file.write(user_tb + '\n')
+
+            #Create Entries for User Table
+            user_tb = item["Seller"]["UserID"] + columnSeparator + \
+                "\"" + item["Location"] + "\"" + columnSeparator + \
+                "\"" + item["Country"] + "\"" + columnSeparator + \
+                "\"" + item["Seller"]["Rating"] + "\""
+            user_file.write(user_tb + '\n')
+
             pass
+        item_file.close()
+        cat_file.close()
+        bid_file.close()
+        user_file.close()
+
 
 """
 Loops through each json files provided on the command line and passes each file
