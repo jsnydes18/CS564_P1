@@ -30,6 +30,7 @@ from re import sub
 
 columnSeparator = "|"
 
+
 # Dictionary of months used for date transformation
 MONTHS = {'Jan':'01','Feb':'02','Mar':'03','Apr':'04','May':'05','Jun':'06',\
         'Jul':'07','Aug':'08','Sep':'09','Oct':'10','Nov':'11','Dec':'12'}
@@ -88,18 +89,13 @@ Bid: ItemID | BuyerID | Time | Amount
 User: UserID | Rating | Location | Country
 """
 def parseJson(json_file):
+    item_file = open('item_tb.dat', 'a')
+    cat_file = open('category_tb.dat', 'a')
+    bid_file = open('bid_tb.dat', 'a')
+    user_file = open('user_tb.dat', 'a')
+
     with open(json_file, 'r') as f:
         items = loads(f.read())['Items']
-
-        #Open DAT files, create if none exist
-        item_file = open('item_tb.dat', 'w+')
-        item_file.truncate()
-        cat_file = open('category_tb.dat', 'w+')
-        cat_file.truncate()
-        bid_file = open('bid_tb.dat', 'w+')
-        bid_file.truncate()
-        user_file = open('user_tb.dat', 'w+')
-        user_file.truncate()
 
         #Loop through items
         for item in items:
@@ -132,7 +128,7 @@ def parseJson(json_file):
             #Create Entries for Bid Table
             num_bids = int(item["Number_of_Bids"])
             if num_bids > 0:
-                for x in range(0, num_bids-1):
+                for x in range(0, num_bids):
                     bid_tb = item["ItemID"] + columnSeparator + \
                         "\"" + item["Bids"][x]["Bid"]["Bidder"]["UserID"] + "\"" + columnSeparator + \
                         "\"" + transformDttm(item["Bids"][x]["Bid"]["Time"]) + "\"" + columnSeparator + \
@@ -142,7 +138,7 @@ def parseJson(json_file):
                     user_tb = item["Bids"][x]["Bid"]["Bidder"]["UserID"] + columnSeparator + \
                         item["Bids"][x]["Bid"]["Bidder"]["Rating"] + columnSeparator
                     if "Location" in item["Bids"][x]["Bid"]["Bidder"]:
-                        user_tb += ("\"" + item["Bids"][x]["Bid"]["Bidder"]["Location"] + "\"" + columnSeparator)
+                        user_tb += ("\"" + escapeQuotes(item["Bids"][x]["Bid"]["Bidder"]["Location"], 0) + "\"" + columnSeparator)
                     else:
                         user_tb += ("NULL" + columnSeparator)
                     if "Country" in item["Bids"][x]["Bid"]["Bidder"]:
@@ -154,16 +150,14 @@ def parseJson(json_file):
             #Create Entries for User Table
             user_tb = item["Seller"]["UserID"] + columnSeparator + \
                 item["Seller"]["Rating"] + columnSeparator + \
-                "\"" + item["Location"] + "\"" + columnSeparator + \
+                "\"" + escapeQuotes(item["Location"], 0) + "\"" + columnSeparator + \
                 "\"" + item["Country"] + "\""
             user_file.write(user_tb + '\n')
-
-            pass
-        item_file.close()
-        cat_file.close()
-        bid_file.close()
-        user_file.close()
-
+        pass
+    item_file.close()
+    cat_file.close()
+    bid_file.close()
+    user_file.close()
 
 """
 Loops through each json files provided on the command line and passes each file
@@ -174,6 +168,14 @@ def main(argv):
         print >> sys.stderr, 'Usage: python skeleton_json_parser.py <path to json files>'
         sys.exit(1)
     # loops over all .json files in the argument
+    item_file = open('item_tb.dat', 'w')
+    cat_file = open('category_tb.dat', 'w')
+    bid_file = open('bid_tb.dat', 'w')
+    user_file = open('user_tb.dat', 'w')
+    item_file.close()
+    cat_file.close()
+    bid_file.close()
+    user_file.close()
     for f in argv[1:]:
         if isJson(f):
             parseJson(f)
